@@ -1,28 +1,10 @@
-ColumnVector LeastSquares(int n, int m, Matrix& input) {
-    Matrix A(m, n + 1, "A");
-    ColumnVector b(m);
-    fillMatrixVector(A, n, input, b);
-
-    Matrix A_T = A.T();
-    Matrix temp = A_T * A;
-    SquareMatrix A_TA = static_cast<SquareMatrix &> (temp);
-    A_TA.setName("A_T*A");
-    SquareMatrix inverse = A_TA.inverseMatrix();
-    inverse.setName("inverse");
-
-    ColumnVector A_T_b = A_T * b;
-    ColumnVector ans = inverse * A_T_b;
-    return ans;
-}
-
-
 int main() {
     FILE* file = _popen("C:\\gnuplot\\bin\\gnuplot -persist","w");
 
     if (file != nullptr) {
         int m, n;
         cin >> m;
-        Matrix input(m, 2,"input");
+        Matrix input(m, 2);
         cin >> input;
         cin >> n;
 
