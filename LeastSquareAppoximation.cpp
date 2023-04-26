@@ -124,32 +124,21 @@ private:
     int rows;
     int columns;
     double **matrix{};
-    string name;
 
 public:
-    Matrix(int n, int m, string name) {
+    Matrix(int n, int m) {
         matrix = new double *[n];
         for (int i = 0; i < n; ++i) {
             matrix[i] = new double[m];
         }
         rows = n;
         columns = m;
-        this->name = name;
     }
 
     Matrix() {
         rows = 0;
         columns = 0;
     }
-
-    string getName() {
-        return name;
-    }
-
-    void setName(string name) {
-        this->name = name;
-    }
-
 
     virtual void operator=(const Matrix &a) {
         this->rows = a.rows;
@@ -172,7 +161,7 @@ public:
      */
     virtual Matrix operator+(Matrix &a) const {
         if (this->rows == a.rows && this->columns == a.columns) {
-            Matrix newMatrix(rows, columns, name);
+            Matrix newMatrix(rows, columns);
             for (int i = 0; i < rows; ++i) {
                 for (int j = 0; j < columns; ++j) {
                     newMatrix.matrix[i][j] = matrix[i][j] + a.matrix[i][j];
@@ -180,7 +169,7 @@ public:
             }
             return newMatrix;
         } else {
-            return {0, 0, 0};
+            return {0, 0};
         }
     }
 
@@ -191,7 +180,7 @@ public:
      */
     virtual Matrix operator-(Matrix a) const {
         if (this->rows == a.rows && this->columns == a.columns) {
-            Matrix newMatrix(rows, columns, name);
+            Matrix newMatrix(rows, columns);
             for (int i = 0; i < rows; ++i) {
                 for (int j = 0; j < columns; ++j) {
                     newMatrix.matrix[i][j] = matrix[i][j] - a.matrix[i][j];
@@ -199,7 +188,7 @@ public:
             }
             return newMatrix;
         } else {
-            return {0, 0, 0};
+            return {0, 0};
         }
     }
 
@@ -210,7 +199,7 @@ public:
      */
     virtual Matrix operator*(const Matrix a) const {
         if (columns == a.rows) {
-            Matrix newMatrix(rows, a.columns, name);
+            Matrix newMatrix(rows, a.columns);
             for (int k = 0; k < rows; ++k) {
                 for (int i = 0; i < a.columns; ++i) {
                     double sum = 0;
@@ -222,7 +211,7 @@ public:
             }
             return newMatrix;
         } else {
-            return {0, 0, name};
+            return {0, 0};
         }
     }
 
@@ -243,7 +232,7 @@ public:
      * @return transposed matrix
      */
     Matrix T() {
-        Matrix transposed(columns, rows, "transpose");
+        Matrix transposed(columns, rows);
         for (int i = 0; i < columns; ++i) {
             for (int j = 0; j < rows; ++j) {
                 transposed.matrix[i][j] = matrix[j][i];
@@ -320,7 +309,7 @@ ostream &operator<<(ostream &out, Matrix &m) {
 
 class SquareMatrix : public Matrix {
 public:
-    SquareMatrix(int n, string name) : Matrix(n, n, name) {}
+    SquareMatrix(int n) : Matrix(n, n) {}
 
     SquareMatrix() : Matrix() {}
 
@@ -377,7 +366,7 @@ public:
 
 class IdentityMatrix : public SquareMatrix {
 public :
-    IdentityMatrix(int n,string name) : SquareMatrix(n,name) {
+    IdentityMatrix(int n) : SquareMatrix(n) {
         for (int i = 0; i < this->getRows(); ++i) {
             for (int j = 0; j < this->getColumns(); ++j) {
                 if (i == j) this->putValueAt(1, i, i);
@@ -407,7 +396,7 @@ public :
 
 class EliminationMatrix : public IdentityMatrix {
 public:
-    EliminationMatrix(int row, int column, Matrix &matrix) : IdentityMatrix(matrix.getRows(), matrix.getName()) {
+    EliminationMatrix(int row, int column, Matrix &matrix) : IdentityMatrix(matrix.getRows()) {
         double value = (-1) * matrix.getAtPosition(row, column) / matrix.getAtPosition(column, column);
         this->putValueAt(value, row, column);
     }
@@ -422,7 +411,7 @@ public:
 
 class PermutationMatrix : public IdentityMatrix {
 public:
-    PermutationMatrix(int n, int firstRow, int secondRow, string name) : IdentityMatrix(n, name) {
+    PermutationMatrix(int n, int firstRow, int secondRow) : IdentityMatrix(n) {
         this->putValueAt(0, firstRow, firstRow);
         this->putValueAt(0, secondRow, secondRow);
         this->putValueAt(1, firstRow, secondRow);
@@ -454,13 +443,8 @@ void fillMatrixVector(Matrix &A, int n, Matrix &input, ColumnVector &b) {
     }
 }
 
-int main() {
-    int m, n;
-    cin >> m;
-    Matrix input(m, 2,"input");
-    cin >> input;
-    cin >> n;
-    Matrix A(m, n + 1, "A");
+ColumnVector LeastSquares(int n, int m, Matrix& input) {
+    Matrix A(m, n + 1);
     ColumnVector b(m);
     fillMatrixVector(A, n, input, b);
 
@@ -468,17 +452,25 @@ int main() {
     Matrix A_T = A.T();
     Matrix temp = A_T * A;
     SquareMatrix A_TA = static_cast<SquareMatrix &> (temp);
-    A_TA.setName("A_T*A");
     cout << "A_T*A:" << endl << A_TA;
     SquareMatrix inverse = A_TA.inverseMatrix();
-    inverse.setName("inverse");
     cout << "(A_T*A)^-1:" << endl << inverse;
 
     ColumnVector A_T_b = A_T * b;
     cout << "A_T*b:" << endl << A_T_b;
     ColumnVector ans = inverse * A_T_b;
-    cout << "x~:" << endl << ans;
+    return ans;
+}
 
+int main() {
+    int m, n;
+    cin >> m;
+    Matrix input(m, 2);
+    cin >> input;
+    cin >> n;
+
+    ColumnVector ans = LeastSquares(n,m,input);
+    cout << "x~:" << endl << ans;
     return 0;
 }
 
@@ -498,32 +490,14 @@ ColumnVector SquareMatrix::RREF(ColumnVector &vector) {
     return vector;
 }
 
-
-void printA(SquareMatrix& matrix, IdentityMatrix& au) {
-    for (int i = 0; i < matrix.getRows(); ++i) {
-        for (int j = 0; j < matrix.getColumns(); ++j) {
-            cout << matrix.getAtPosition(i,j) << " ";
-        }
-        cout << "    ";
-        for (int j = 0; j < matrix.getColumns(); ++j) {
-            cout << au.getAtPosition(i,j) << " ";
-        }
-        cout << endl;
-    }
-    cout << endl;
-}
-
 IdentityMatrix SquareMatrix::inverseMatrix() {
     int counterOfOperations = 1;
-    IdentityMatrix augmented(this->getRows(), "Aug");
+    IdentityMatrix augmented(this->getRows());
 
     ZeroLowerTriangle(augmented, counterOfOperations);
-//    printA(*this, augmented);
 
     ZeroUpperTriangle(augmented, counterOfOperations);
-//    printA(*this, augmented);
     DiagonalNormalization(augmented);
-//    printA(*this, augmented);
     return augmented;
 }
 
@@ -540,7 +514,7 @@ void SquareMatrix::ZeroLowerTriangle(IdentityMatrix &augmented, int &counterOfOp
         }
         //Permutation
         if (maxIndex != i) {
-            PermutationMatrix P(this->getRows(), i, maxIndex, "P");
+            PermutationMatrix P(this->getRows(), i, maxIndex);
             *this = P * *this;
             augmented = P * augmented;
         }
@@ -552,7 +526,6 @@ void SquareMatrix::ZeroLowerTriangle(IdentityMatrix &augmented, int &counterOfOp
                 augmented = E * augmented;
             }
         }
-//        printA(*this, augmented);
     }
 }
 
@@ -569,7 +542,7 @@ void SquareMatrix::ZeroLowerTriangle(ColumnVector &vector, int &counterOfOperati
         }
         //Permutation
         if (maxIndex != i) {
-            PermutationMatrix P(this->getRows(), i, maxIndex, "E");
+            PermutationMatrix P(this->getRows(), i, maxIndex);
             *this = P * *this;
             vector.swapRows(i, maxIndex);
         }
